@@ -32,3 +32,4 @@ class CourseDetailSerializer(ModelSerializer):
         model = Course
         fields = ('name', 'description', 'lessons_count')
 
+

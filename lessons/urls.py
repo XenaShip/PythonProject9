@@ -2,7 +2,7 @@ from django.urls import path
 
 from rest_framework.routers import SimpleRouter
 
-from lessons.views import CourseViewSet, LessonListApiView, LessonUpdateApiView, LessonCreateApiView,\
+from lessons.views import CourseViewSet, LessonListApiView, LessonUpdateApiView, LessonCreateApiView, \
     LessonDestroyApiView, LessonRetrieveApiView
 from lessons.apps import LessonsConfig
 
