@@ -1,4 +1,5 @@
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.permissions import AllowAny
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.generics import CreateAPIView, ListAPIView, RetrieveAPIView, UpdateAPIView, DestroyAPIView
 from rest_framework import filters
@@ -17,6 +18,12 @@ class PayViewSet(ModelViewSet):
 class UserCreateApiView(CreateAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    permission_classes = (AllowAny,)
+
+    def perform_create(self, serializer):
+        user = serializer.save(is_active=True)
+        user.set_password(self.request.data.get('password'))
+        user.save()
 
 
 class UserListApiView(ListAPIView):
