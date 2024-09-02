@@ -30,6 +30,7 @@ class LessonTestCase(APITestCase):
 
     def test_lesson_retrieve(self):
         url = reverse('lessons:lesson_retrieve', args=(self.lesson.pk,))
+        self.client.force_authenticate(user=self.user)
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -47,6 +48,7 @@ class LessonTestCase(APITestCase):
         self.assertEqual(data.get('name'), 'Граматика')
 
     def test_lesson_delete(self):
+        self.client.force_authenticate(user=self.user)
         url = reverse('lessons:lesson_delete', args=(self.lesson.pk,))
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
