@@ -21,10 +21,24 @@ class Lesson(models.Model):
     description = models.TextField(verbose_name='описание', **NULLABLE)
     image = models.ImageField(upload_to='lessons/lessons', verbose_name='изображение', **NULLABLE)
     course = models.ForeignKey(Course, on_delete=models.SET_NULL, verbose_name='курс', **NULLABLE)
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True)
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, **NULLABLE)
+    video_url = models.URLField(max_length=300, verbose_name="Видео урока", **NULLABLE)
 
     class Meta:
         verbose_name = 'урок'
         verbose_name_plural = 'уроки'
 
+
+class Subscription(models.Model):
+    user = models.ForeignKey('users.User', on_delete=models.CASCADE, verbose_name='Пользователь',
+                             related_name='subscription_user')
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, verbose_name='Курс',
+                               related_name='subscription_course')
+
+    def __str__(self):
+        return f'{self.user} - {self.course}'
+
+    class Meta:
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки'
 
