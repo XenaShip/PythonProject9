@@ -1,10 +1,13 @@
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.filters import SearchFilter
 from rest_framework.permissions import AllowAny
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.generics import CreateAPIView, ListAPIView, RetrieveAPIView, UpdateAPIView, DestroyAPIView
 from rest_framework import filters
 from users.models import User, Pay
 from users.serializer import UserSerializer, PaySerializer
+from users.services import create_stripe_price, create_stripe_session
 
 
 class PayViewSet(ModelViewSet):
@@ -44,3 +47,26 @@ class UserUpdateApiView(UpdateAPIView):
 class UserDestroyApiView(DestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+
+
+class PayListAPIView(ListAPIView):
+    serializer_class = PaySerializer
+    queryset = Pay.objects.all()
+
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['payed_lesson', 'payed_course', 'type_of_payment']
+    ordering_fields = ['-date']
+
+
+class PayCreateAPIView(CreateAPIView):
+    serializer_class = PaySerializer
+    queryset = Pay.objects.all()
+
+    def perform_create(self, serializer):
+        pay = serializer.save(user=self.request.user)
+        price = create_stripe_price(pay.summ)
+        session_id, payment_link = create_stripe_session(price)
+
+        pay.session_id = session_id
+        pay.link = payment_link
+        pay.save()
