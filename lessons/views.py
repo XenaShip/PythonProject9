@@ -1,6 +1,8 @@
+from django.core.mail import send_mail
 from django.utils.decorators import method_decorator
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework.decorators import api_view
+from rest_framework import status
+from rest_framework.decorators import api_view, action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -8,6 +10,7 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.generics import CreateAPIView, ListAPIView, RetrieveAPIView, UpdateAPIView, DestroyAPIView, \
     get_object_or_404
 
+from config.settings import EMAIL_HOST_USER
 from lessons.models import Lesson, Course, Subscription
 from lessons.paginators import CustomPagination
 from lessons.serializer import CourseSerializer, LessonSerializer, CourseDetailSerializer, SubscriptionSerializer
@@ -32,6 +35,28 @@ class CourseViewSet(ModelViewSet):
         elif self.action == 'destroy':
             self.permission_classes = (IsOwner | ~IsModerator,)
         return super().get_permissions()
+
+    @action(detail=True, methods=("put", "patch"))
+    def update_course_and_notify_subscribers(self, request, pk):
+        course = get_object_or_404(Course, pk=pk)
+        serializer = self.get_serializer(course, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+
+            subscriptions = Subscription.objects.filter(course=course)
+            subscribers = [subscription.user for subscription in subscriptions]
+
+            for subscriber in subscribers:
+                send_mail(
+                    "Подписка на курс",
+                    f'Подписка на "{course.name}" была обновлеа',
+                    EMAIL_HOST_USER,
+                    [subscriber.email],
+                    fail_silently=False,
+                )
+
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class LessonCreateApiView(CreateAPIView):
