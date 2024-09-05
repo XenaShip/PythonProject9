@@ -28,6 +28,35 @@ class LessonTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Lesson.objects.count(), 2)
 
+    def test_create_lesson_Youtube(self):
+        url = reverse('lessons:lesson_create')
+        self.client.force_authenticate(user=self.user)
+        data = {
+            'name': 'А теперь граматика',
+            'description': 'крутой урок, бесспорно',
+            'course': self.course.pk,
+            'owner': self.user.pk,
+            'video_url': 'https://www.youtube.com/'
+        }
+        response = self.client.post(url, data)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Lesson.objects.count(), 2)
+
+    def test_create_lesson_no_Youtube(self):
+        url = reverse('lessons:lesson_create')
+        self.client.force_authenticate(user=self.user)
+        data = {
+            'name': 'А теперь граматика',
+            'description': 'крутой урок, бесспорно',
+            'course': self.course.pk,
+            'owner': self.user.pk,
+            'video_url': 'https://www.youtube.ru/'
+        }
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Lesson.objects.count(), 1)
+
     def test_lesson_retrieve(self):
         url = reverse('lessons:lesson_retrieve', args=(self.lesson.pk,))
         self.client.force_authenticate(user=self.user)
@@ -77,6 +106,11 @@ class SubscriptionTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['message'], 'Вы подписались')
         self.assertTrue(Subscription.objects.filter(user=self.user, course=self.course).exists())
+        url = reverse('lessons:subscription_create')
+        data = {'course_id': self.course.id}
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['message'], 'Вы отписались')
 
     def test_subscription_list(self):
         url = reverse('lessons:subscription_list')
@@ -84,3 +118,18 @@ class SubscriptionTestCase(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]['course'], self.course.id)
+
+    def test_subscribe_to_course_no_ex(self):
+        Subscription.objects.all().delete()
+        url = reverse('lessons:subscription_create')
+        data = {'course_id': ''}
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_subscribe_to_course_no_au(self):
+        Subscription.objects.all().delete()
+        self.client.force_authenticate(user='')
+        url = reverse('lessons:subscription_create')
+        data = {'course_id': self.course.id}
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
