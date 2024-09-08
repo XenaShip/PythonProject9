@@ -1,5 +1,4 @@
 import stripe
-from forex_python.converter import CurrencyRates
 
 from config.settings import STRIPE_API_KEY
 
@@ -7,28 +6,21 @@ from config.settings import STRIPE_API_KEY
 stripe.api_key = STRIPE_API_KEY
 
 
-def create_stripe_product(instance):
+
+def create_stripe_product(product_name):
     """Создаем stripe продукт"""
-
-    title_product = f'{instance.paid_course}' if instance.paid_course else f'{instance.paid_lesson}'
-    stripe_product = stripe.Product.create(name=f"{title_product}")
-    return stripe_product.get('id')
+    stripe_product = stripe.Product.create(name=product_name)
+    return stripe_product
 
 
-def convert_rub_to_dollars(payment_sum):
-    """ Конвертирует рубли в доллары """
-    c = CurrencyRates()
-    rate = c.get_rate('RUB', 'USD')
-    return int(payment_sum * rate)
 
-
-def create_stripe_price(payment_sum):
+def create_stripe_price(product, payment_sum):
     """ Создает цену в страйпе """
 
     return stripe.Price.create(
+        product=product.get('id'),
         currency="usd",
-        unit_amount=payment_sum * 100,
-        product_data={"name": "Payment"},
+        unit_amount=payment_sum * 100
     )
 
 
