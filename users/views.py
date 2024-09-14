@@ -73,3 +73,5 @@ class PayCreateAPIView(CreateAPIView):
         pay.session_id = session_id
         pay.link = payment_link
         pay.save()
+
+

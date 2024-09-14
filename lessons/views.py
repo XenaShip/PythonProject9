@@ -15,6 +15,7 @@ from lessons.models import Lesson, Course, Subscription
 from lessons.paginators import CustomPagination
 from lessons.serializer import CourseSerializer, LessonSerializer, CourseDetailSerializer, SubscriptionSerializer
 from users.permissions import IsOwner, IsModerator
+from users.tasks import sub_update
 
 
 class CourseViewSet(ModelViewSet):
@@ -27,34 +28,33 @@ class CourseViewSet(ModelViewSet):
             return CourseDetailSerializer
         return CourseSerializer
 
-    def get_permissions(self):
-        if self.action == 'create':
-            self.permission_classes = (~IsModerator,)
-        elif self.action in ['update', 'retrieve']:
-            self.permission_classes = (IsModerator | IsOwner,)
-        elif self.action == 'destroy':
-            self.permission_classes = (IsOwner | ~IsModerator,)
-        return super().get_permissions()
+    # def get_permissions(self):
+    #     if self.action == 'create':
+    #         self.permission_classes = (~IsModerator,)
+    #     elif self.action in ['update', 'retrieve']:
+    #         self.permission_classes = (IsModerator | IsOwner,)
+    #     elif self.action == 'destroy':
+    #         self.permission_classes = (IsOwner | ~IsModerator,)
+    #     return super().get_permissions()
 
-    @action(detail=True, methods=("put", "patch"))
-    def update_course_and_notify_subscribers(self, request, pk):
+    # @action(detail=True, methods=("put", "patch"))
+    # def update_course_and_notify_subscribers(self, request, pk):
+    #     print('update_course')
+    #     course = get_object_or_404(Course, pk=pk)
+    #     serializer = self.get_serializer(course, data=request.data, partial=True)
+    #     if serializer.is_valid():
+    #         serializer.save()
+    #         add.delay(course)
+    #         return Response(serializer.data)
+    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def update(self, request, pk=None):
         course = get_object_or_404(Course, pk=pk)
         serializer = self.get_serializer(course, data=request.data, partial=True)
+
         if serializer.is_valid():
             serializer.save()
-
-            subscriptions = Subscription.objects.filter(course=course)
-            subscribers = [subscription.user for subscription in subscriptions]
-
-            for subscriber in subscribers:
-                send_mail(
-                    "Подписка на курс",
-                    f'Подписка на "{course.name}" была обновлеа',
-                    EMAIL_HOST_USER,
-                    [subscriber.email],
-                    fail_silently=False,
-                )
-
+            sub_update.delay(pk)
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
